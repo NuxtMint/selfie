@@ -21,7 +21,7 @@ const portfolioData = ref<PortfolioData>({
 
 const isLoading = ref(false);
 const lastFetch = ref<number>(0);
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 1000; // 30 seconds
 
 export const useDataStore = () => {
   const { getFileUrl } = usePocketBase();
@@ -118,6 +118,24 @@ export const useDataStore = () => {
     return await fetchPortfolioData(true);
   };
 
+  // Auto-refresh data periodically when page is visible
+  const startAutoRefresh = (intervalMs = 30000) => {
+    if (import.meta.client) {
+      const interval = setInterval(async () => {
+        if (!document.hidden) {
+          await fetchPortfolioData();
+        }
+      }, intervalMs);
+
+      // Clean up on page unload
+      onUnmounted(() => {
+        clearInterval(interval);
+      });
+
+      return interval;
+    }
+  };
+
   // Clear cache
   const clearCache = (): void => {
     lastFetch.value = 0;
@@ -130,6 +148,25 @@ export const useDataStore = () => {
     };
   };
 
+  // Fetch availability status without caching
+  const fetchAvailabilityStatus = async (): Promise<boolean> => {
+    try {
+      const response = await $fetch<{ available: boolean }>(
+        '/api/availability'
+      );
+
+      // Update the profile's availability status in the store
+      if (portfolioData.value.profile) {
+        portfolioData.value.profile.available = response.available;
+      }
+
+      return response.available;
+    } catch (error) {
+      console.error('Error fetching availability status:', error);
+      return portfolioData.value.profile?.available ?? false;
+    }
+  };
+
   return {
     // Reactive data
     data: readonly(portfolioData),
@@ -139,8 +176,10 @@ export const useDataStore = () => {
     fetchPortfolioData,
     initializeData,
     refreshData,
+    startAutoRefresh,
     clearCache,
     getFileUrl,
+    fetchAvailabilityStatus,
 
     // Legacy methods for backward compatibility
     fetchProfile: async () => {

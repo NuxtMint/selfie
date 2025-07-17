@@ -42,6 +42,21 @@
 
         <!-- Theme Toggle & Mobile Menu -->
         <div class="flex items-center space-x-2">
+          <!-- Refresh Button (only show in development) -->
+          <button
+            v-if="$dev"
+            @click="handleRefresh"
+            :disabled="isRefreshing"
+            class="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-50"
+            title="Refresh data from PocketBase"
+          >
+            <Icon
+              name="lucide:refresh-cw"
+              class="w-4 h-4"
+              :class="{ 'animate-spin': isRefreshing }"
+            />
+          </button>
+
           <button
             @click="toggleTheme"
             class="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -88,8 +103,11 @@
 
 <script setup lang="ts">
 const { isDark, toggleTheme } = useTheme();
-const { data } = useDataStore();
+const { data, refreshData, fetchAvailabilityStatus, isLoading } =
+  useDataStore();
 const isMobileMenuOpen = ref(false);
+const isRefreshing = ref(false);
+const { $dev } = useNuxtApp();
 
 // Navigation links
 const navigationLinks = [
@@ -101,8 +119,34 @@ const navigationLinks = [
   { href: '#contact', label: 'Contact' },
 ];
 
+// Manual refresh handler
+const handleRefresh = async () => {
+  isRefreshing.value = true;
+  try {
+    await refreshData();
+    console.log('Data refreshed successfully');
+  } catch (error) {
+    console.error('Error refreshing data:', error);
+  } finally {
+    isRefreshing.value = false;
+  }
+};
+
+// Update availability status regularly
+const updateAvailabilityStatus = async () => {
+  try {
+    await fetchAvailabilityStatus();
+  } catch (error) {
+    console.error('Error updating availability status:', error);
+  }
+};
+
 // Close mobile menu when clicking outside
 onMounted(() => {
+  // Update availability status immediately and then every 10 seconds
+  updateAvailabilityStatus();
+  const availabilityInterval = setInterval(updateAvailabilityStatus, 10000);
+
   const handleClickOutside = (event: Event) => {
     const target = event.target as HTMLElement;
     const nav = document.querySelector('nav');
@@ -115,6 +159,7 @@ onMounted(() => {
 
   onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
+    clearInterval(availabilityInterval);
   });
 });
 </script>

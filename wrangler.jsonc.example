@@ -1,0 +1,23 @@
+{
+  "name": "selfie",
+  "compatibility_date": "2024-03-01",
+  "pages_build_output_dir": "./dist",
+  "env": {
+    "production": {
+      "vars": {
+        "POCKETBASE_URL": "https://your-pocketbase-url.com/",
+        "SUPERUSER_PASSWORD": "your_password",
+        "SUPERUSER_EMAIL": "example@email.com",
+        "DEMO": "false"
+      }
+    },
+    "preview": {
+      "vars": {
+        "POCKETBASE_URL": "https://your-pocketbase-url.com/",
+        "SUPERUSER_PASSWORD": "your_password",
+        "SUPERUSER_EMAIL": "example@email.com",
+        "DEMO": "false"
+      }
+    }
+  }
+}
